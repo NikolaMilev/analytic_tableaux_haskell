@@ -70,6 +70,8 @@ module NNF (nnf) where
 	simplify formula = formula
 
 	-- Converts the formula to NNF. Makes no assumptions.
+	-- After applying this to a formula, the only possible nodes
+	-- are And, Or, Not and Atom
 	-- The only function visible from outside the module.
 	nnf :: Formula -> Formula
 	nnf formula = simplify $ to_nnf $ remove_eq_impl formula
