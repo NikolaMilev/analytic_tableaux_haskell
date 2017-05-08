@@ -1,4 +1,4 @@
-module NNF (nnf) where
+module NNF where
 	import Formula
 
 	-- The removal of the implication and the equivalence symbols;
@@ -32,6 +32,9 @@ module NNF (nnf) where
 	                                r_f2 = to_nnf (Not f2)
 	to_nnf (Not (Not f)) = r_f
 	                       where r_f = to_nnf f  
+	to_nnf (And f1 f2) = And (to_nnf f1) (to_nnf f2) 
+	to_nnf (Or f1 f2) = Or (to_nnf f1) (to_nnf f2) 
+	to_nnf (Not f) = Not (to_nnf f) 
 	-- ukoliko promenim Atom Char ili literale u nesto drugo, ovo ostaje isto
 	to_nnf formula = formula 
 
