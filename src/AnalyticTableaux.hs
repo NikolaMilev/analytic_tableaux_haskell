@@ -1,4 +1,6 @@
 module AnalyticTableaux where
+	-- http://dev.stephendiehl.com/fun/002_parsers.html
+	-- za parsiranje ^
 	import Formula
 	import NNF 
 	import qualified Data.Map.Strict as Map
