@@ -2,6 +2,16 @@ module Main where
 import Formula
 import NNF
 import AnalyticTableaux
-import Parser1
+import Parser
+import System.Console.Haskeline
 main :: IO ()
-main = putStrLn "Hello, Haskell!"
+main = runInputT defaultSettings loop
+   where
+       loop :: InputT IO ()
+       loop = do
+           minput <- getInputLine ">>> "
+           case minput of
+               Nothing -> return ()
+               Just "quit" -> return ()
+               Just input -> do outputStrLn $ parseString input
+                                loop  		

@@ -1,82 +1,91 @@
 module Parser where
 	import Formula
 	import NNF
+	import AnalyticTableaux
+
+	import System.IO
+	import Control.Monad
+	import Text.ParserCombinators.Parsec
+	import Text.ParserCombinators.Parsec.Expr
+	import Text.ParserCombinators.Parsec.Language
+	import qualified Text.ParserCombinators.Parsec.Token as Token
+	
+	-- za ovaj treba parsec a za parser treba megaparsec
+
 	-- source
 	-- https://mrkkrp.github.io/megaparsec/tutorials/parsing-simple-imperative-language.html
 
 	-- better source: https://wiki.haskell.org/Parsing_a_simple_imperative_language
-	import Control.Monad (void)
-	import Text.Megaparsec
-	import Text.Megaparsec.Expr
-	import Text.Megaparsec.String -- input stream is of type ‘String’
-	import qualified Text.Megaparsec.Lexer as L
-	import Text.Megaparsec.Char
+	
+	data Statement =  Tautology Formula
+					| Satisfiable Formula 
+					deriving (Eq)
+	
+	evaluate :: Statement -> Bool
+ 	evaluate (Satisfiable formula) = is_satisfiable formula
+   	evaluate (Tautology formula) = is_tautology formula
 
-	spaceConsumer :: Parser ()
-	spaceConsumer  = L.space (void spaceChar) lineComment blockComment
-		where lineComment = L.skipLineComment "//"
-		      blockComment = L.skipBlockComment "/*" "*/"
-    -- probaj samo ovo ispod, ne trebaju ti komentari
-	-- ovo ispod ne radi
-	--spaceConsumer = void spaceChar
+   	instance Show Statement where 
+   		show (Tautology formula) = "taut " ++ show formula ++ " : " ++ show (is_tautology formula)
+   		show (Satisfiable formula) = "sat " ++ show formula ++ " : " ++ show (is_satisfiable formula)
 
+   	languageDef = emptyDef {
+   								Token.identStart=letter
+   							,   Token.identLetter = alphaNum
+   							,   Token.reservedNames=[ "taut", "sat", "T", "F" ]
+   							,   Token.reservedOpNames=[ "~", "/\\", "\\/", "=>" , "<=>" ]
+   							,   Token.caseSensitive=False
+   						   }
 
-	operators :: [[Operator Parser Formula]]
-	operators =
-	  [ [Prefix (Not <$ symbol "~") ]
-	  , [ InfixL (And <$ symbol "/\\")
-	    , InfixL (Or <$ symbol "\\/") ],
-	    [ InfixL (Impl   <$ symbol "=>") ]
-	    ,[ InfixL (Eqv <$ symbol "<=>") ]
-	  ]
-	-- how to parse a lexeme
-	-- L.lexeme wraps the lexeme parser with a space consumer
-	lexeme :: Parser a -> Parser a
-	lexeme = L.lexeme spaceConsumer
+	lexer = Token.makeTokenParser languageDef
+	identifier = Token.identifier lexer
+	reserved = Token.reserved lexer
+	reservedOp = Token.reservedOp lexer
+	parens = Token.parens
 
-	-- how to parse one symbol
-	symbol :: String -> Parser String
-	symbol = L.symbol spaceConsumer
+	whiteSpace = Token.whiteSpace lexer
 
-	parens :: Parser a -> Parser a
-	parens = between (symbol "(") (symbol ")")
+	whileParser :: Parser Statement
+	whileParser = whiteSpace >> statement
 
-	-- how to parse a single character from stream
-	chararcter :: Parser Char
-	chararcter = L.charLiteral
+	statement :: Parser Statement
+	statement =     tautologyStatement
+				<|> satisfiableStatement
 
-	identifier :: Parser String
-	identifier = many letterChar
+	tautologyStatement = 
+						do reserved "taut" 
+						   formula <- formulaExpression
+						   return $ Tautology formula
 
-	-- The list of reserved words
-	--reservedWords :: [String] 
-	--reservedWords = ["~", "\\/", "/\\", "<=>", "=>", "T","F","SAT","TAUT"]
+	satisfiableStatement = 
+						do reserved "sat"
+						   formula <- formulaExpression
+						   return $ Satisfiable formula
 
-	rword :: String -> Parser ()
-	rword w = string w *> spaceConsumer
+	formulaExpression :: Parser Formula
+	formulaExpression = buildExpressionParser operators terms
+	
+	operators = [
+					  [ Prefix (reservedOp "~" >> return (Not )) ]
+					, [
+						Infix (reservedOp "/\\" >> return (And )) AssocLeft 
+					  , Infix (reservedOp "\\/" >> return (Or )) AssocLeft  
+					  ]
+					, [ Infix (reservedOp "=>" >> return (Impl )) AssocLeft ]
+					, [ Infix (reservedOp "<=>" >> return (Eqv )) AssocLeft ]
+				]
 
-
-	mainParser :: Parser Formula
-	mainParser = between spaceConsumer eof formulaParser
-
-	--statement :: Parser 
-
-	--formula :: Parser Formula
-	--formula = parens formula <|> equivalence <|> implication <|> conjunction <|> disjunction <|> negation <|> atom <|> true <|> false
-
-	formulaParser :: Parser Formula
-	formulaParser = makeExprParser term operators
-
-	-- the order is quite important!
-	term :: Parser Formula
-	term = parens formulaParser 
-		<|> (rword "T" *> pure FTrue)
-		<|> (rword "F" *> pure FFalse)
-		<|> Atom <$> identifier
-
-
-	parseString :: String -> Formula
+	parseString :: String -> String
 	parseString str =
-		case parse mainParser "" str of
-		Left e  -> error $ show e
-		Right r -> nnf r
+		case parse whileParser "" str of
+			Left e  -> error $ show e
+			Right r -> show r
+
+	-- ubaci nekako u terms:
+	-- = (parens formulaExpression)
+	terms = parens lexer formulaExpression
+		<|> (reserved "T"  >> return FTrue )
+		<|> (reserved "F" >> return FFalse)
+		<|> (Atom <$> identifier)
+
+   
