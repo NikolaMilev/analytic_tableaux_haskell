@@ -1,4 +1,5 @@
-module NNF where
+module NNF(nnf) where
+	-- we allow only for the nnf function to be visible outside the module
 	import Formula
 
 	-- The removal of the implication and the equivalence symbols;

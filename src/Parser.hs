@@ -10,25 +10,26 @@ module Parser where
 	import Text.ParserCombinators.Parsec.Language
 	import qualified Text.ParserCombinators.Parsec.Token as Token
 	
-	-- za ovaj treba parsec a za parser treba megaparsec
 
-	-- source
-	-- https://mrkkrp.github.io/megaparsec/tutorials/parsing-simple-imperative-language.html
-
-	-- better source: https://wiki.haskell.org/Parsing_a_simple_imperative_language
+	-- tutorial for parsing: https://wiki.haskell.org/Parsing_a_simple_imperative_language
 	
+	-- the data structure representing one statement within our interpreter
+	-- the statement is keyword 'taut' or 'sat' followed by a formula
 	data Statement =  Tautology Formula
 					| Satisfiable Formula 
 					deriving (Eq)
 	
+	-- evaluation of the Statement
 	evaluate :: Statement -> Bool
  	evaluate (Satisfiable formula) = is_satisfiable formula
    	evaluate (Tautology formula) = is_tautology formula
 
+   	-- printing of the Statement
    	instance Show Statement where 
    		show (Tautology formula) = "taut " ++ show formula ++ " : " ++ show (is_tautology formula)
    		show (Satisfiable formula) = "sat " ++ show formula ++ " : " ++ show (is_satisfiable formula)
 
+	-- Making the language
    	languageDef = emptyDef {
    								Token.identStart=letter
    							,   Token.identLetter = alphaNum
@@ -36,6 +37,7 @@ module Parser where
    							,   Token.reservedOpNames=[ "~", "/\\", "\\/", "=>" , "<=>" ]
    							,   Token.caseSensitive=False
    						   }
+
 
 	lexer = Token.makeTokenParser languageDef
 	identifier = Token.identifier lexer
@@ -65,6 +67,7 @@ module Parser where
 	formulaExpression :: Parser Formula
 	formulaExpression = buildExpressionParser operators terms
 	
+	-- The operators in our formula
 	operators = [
 					  [ Prefix (reservedOp "~" >> return (Not )) ]
 					, [
@@ -75,17 +78,19 @@ module Parser where
 					, [ Infix (reservedOp "<=>" >> return (Eqv )) AssocLeft ]
 				]
 
-	parseString :: String -> String
-	parseString str =
-		case parse whileParser "" str of
-			Left e  -> error $ show e
-			Right r -> show r
 
-	-- ubaci nekako u terms:
-	-- = (parens formulaExpression)
+	-- terminal formula expressions
 	terms = parens lexer formulaExpression
 		<|> (reserved "T"  >> return FTrue )
 		<|> (reserved "F" >> return FFalse)
 		<|> (Atom <$> identifier)
+
+	-- The function for parsing a String
+	-- It returns a String no matter the outcome of the parsing
+	parseString :: String -> String
+	parseString str =
+		case parse whileParser "" str of
+			Left e  -> "Parsing error: " ++ show e
+			Right r -> show r
 
    
