@@ -6,7 +6,7 @@ module AnalyticTableaux where
 	import qualified Data.Map.Strict as Map
 
 	-- we put the encountered atoms in a map
-	is_closed :: Map.Map Char Bool -> [Formula] -> Bool
+	is_closed :: Map.Map [Char] Bool -> [Formula] -> Bool
 	
 	-- If we encounter the case where there are no more formulas to examine within the current branch,
 	-- the branch is open
@@ -30,6 +30,8 @@ module AnalyticTableaux where
 		                              Just True -> is_closed branch xs
 		                              Just False -> True
 
+	is_closed branch ((FFalse):xs) = True
+	is_closed branch ((FTrue):xs) = is_closed branch xs
 
 	is_tautology :: Formula -> Bool
 	is_tautology formula = is_closed Map.empty [nnf $ Not formula]

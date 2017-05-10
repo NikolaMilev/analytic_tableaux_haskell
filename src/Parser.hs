@@ -10,6 +10,7 @@ module Parser where
 	import Text.Megaparsec.Expr
 	import Text.Megaparsec.String -- input stream is of type ‘String’
 	import qualified Text.Megaparsec.Lexer as L
+	import Text.Megaparsec.Char
 
 	spaceConsumer :: Parser ()
 	spaceConsumer  = L.space (void spaceChar) lineComment blockComment
@@ -25,8 +26,8 @@ module Parser where
 	  [ [Prefix (Not <$ symbol "~") ]
 	  , [ InfixL (And <$ symbol "/\\")
 	    , InfixL (Or <$ symbol "\\/") ],
-	    [ InfixL (Eqv <$ symbol "<=>")
-	    , InfixL (Impl   <$ symbol "=>") ]
+	    [ InfixL (Impl   <$ symbol "=>") ]
+	    ,[ InfixL (Eqv <$ symbol "<=>") ]
 	  ]
 	-- how to parse a lexeme
 	-- L.lexeme wraps the lexeme parser with a space consumer
@@ -44,9 +45,12 @@ module Parser where
 	chararcter :: Parser Char
 	chararcter = L.charLiteral
 
+	identifier :: Parser String
+	identifier = many letterChar
+
 	-- The list of reserved words
-	reservedWords :: [String] 
-	reservedWords = ["~", "\\/", "/\\", "<=>", "=>", "T","F","SAT","TAUT"]
+	--reservedWords :: [String] 
+	--reservedWords = ["~", "\\/", "/\\", "<=>", "=>", "T","F","SAT","TAUT"]
 
 	rword :: String -> Parser ()
 	rword w = string w *> spaceConsumer
@@ -68,7 +72,7 @@ module Parser where
 	term = parens formulaParser 
 		<|> (rword "T" *> pure FTrue)
 		<|> (rword "F" *> pure FFalse)
-		<|> Atom <$> chararcter
+		<|> Atom <$> identifier
 
 
 	parseString :: String -> Formula
