@@ -1,9 +1,25 @@
+{-|
+  Module      : Main
+  Description : The Main module of the program.
+  Copyright   : (c) Nikola Milev, 2017.
+  License     : None
+  Maintainer  : nikola.n.milev@gmail.com
+  Stability   : Stable
+  Portability : Any platform that supports cabal, except for the .cabal file itself.
+
+  In this module, we do the basic I/O operations and give the read data to the parser that does the analysis of the formulae.
+-}
+
 module Main where
 import Formula
 import NNF
 import AnalyticTableaux
 import Parser
 import System.Console.Haskeline
+{-|
+  The main function that parses the input, using functions from System.Console.Haskeline module, 
+  forwarding it to he Formula parser.
+-}
 main :: IO ()
 main = do runInputT defaultSettings loop
    where
